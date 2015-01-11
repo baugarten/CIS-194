@@ -1,3 +1,6 @@
+{-# OPTIONS_GHC -fno-warn-missing-methods #-}
+{-# LANGUAGE FlexibleInstances #-}
+
 module Fibonacci where
 
 import qualified Data.Map as Map
@@ -41,3 +44,20 @@ ruler :: Stream Integer
 ruler = streamMap f $ streamFromSeed (+1) 1
   where f x | odd x = 0
             | otherwise = 1 + f (x `div` 2)
+
+zeros :: Stream Integer
+zeros = streamRepeat 0
+
+x :: Stream Integer
+x = Cons 0 $ Cons 1 zeros
+
+instance Num (Stream Integer) where
+  fromInteger i = Cons i zeros
+  negate (Cons x xs) = Cons (-x) $ negate xs
+  (+) (Cons x xs) (Cons y ys) = Cons (x+y) (xs + ys)
+  (*) (Cons x xs) s2@(Cons y ys) = Cons (x*y) ((streamMap (*x) ys) + (xs * s2))
+
+instance Fractional (Stream Integer) where
+  (/) s1@(Cons x xs) s2@(Cons y ys) = Cons (x `div` y) $ streamMap (`div` y) (xs - (s1 / s2) * ys)
+
+fibs3 = (Cons 0 $ Cons 1 $ zeros) / (Cons 1 $ Cons (-1) $ Cons (-1) zeros)
