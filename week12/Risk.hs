@@ -38,17 +38,17 @@ battle bf@(Battlefield numAttackers numDefenders)
   | otherwise = do
       ds <- replicateM maxDefenders die
       as <- replicateM maxAttackers die
-      return $ newBattle bf (sortDesc as) (sortDesc ds)
+      return $ newBattle (sortDesc as) (sortDesc ds) bf
     where maxAttackers = min 3 (numAttackers - 1)
           maxDefenders = min 2 numDefenders
           sortDesc = sortBy (flip compare)
 
-newBattle :: Battlefield -> [DieValue] -> [DieValue] -> Battlefield
-newBattle bf [] _ = bf
-newBattle bf _ [] = bf
-newBattle bf (a:as) (d:ds)
-  | d >= a = newBattle (defended bf) as ds
-  | otherwise = newBattle (attacked bf) as ds
+newBattle :: [DieValue] -> [DieValue] -> Battlefield -> Battlefield
+newBattle [] _ = id 
+newBattle _ [] = id
+newBattle (a:as) (d:ds)
+  | d >= a = \bf -> newBattle as ds (defended bf)
+  | otherwise = \bf -> newBattle as ds (attacked bf) 
   where
     defended (Battlefield na nd) = Battlefield (na - 1) nd
     attacked (Battlefield na nd) = Battlefield na (nd - 1)
@@ -56,14 +56,14 @@ newBattle bf (a:as) (d:ds)
 -- Exercise 3
 
 invade :: Battlefield -> Rand StdGen Battlefield
-invade bf@(Battlefield 0 _) = return bf
+invade bf@(Battlefield 1 _) = return bf
 invade bf@(Battlefield _ 0) = return bf
 invade bf = battle bf >>= invade
 
 -- Exercise 4
-num = 100
+num = 1000
 successProb :: Battlefield -> Rand StdGen Double
 successProb bf = do
   results <- replicateM num (invade bf)
   return $ fromIntegral (wins results) / fromIntegral num
-  where wins = length . filter ((>0) . attackers)
+  where wins = length . filter ((>1) . attackers)
