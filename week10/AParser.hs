@@ -65,17 +65,27 @@ instance Functor Parser where
   fmap f parser = Parser parse
     where parse s = first f <$> runParser parser s
 
-
--- Exercise 2
-
 instance Applicative Parser where
-  pure a = Parser (\ s -> Just (a, s))
+  pure a = Parser (\s -> Just (a, s))
 
   p1 <*> p2 = Parser parse
     where parse s = do
           r1 <- runParser p1 s
           r2 <- runParser p2 (snd r1)
           return (fst r1 $ fst r2, snd r2)
+
+instance Alternative Parser where
+  empty = Parser $ const Nothing
+  p1 <|> p2= Parser parse
+    where parse s = let r1 = runParser p1 s
+                        r2 = runParser p2 s 
+                    in r1 <|> r2
+
+-- Exercise 5
+
+nullParser :: Parser a -> Parser ()
+nullParser p = const () <$> p
+
 
 -- type Name = String
 -- data Employee = Emp { name :: Name, phone :: String }
@@ -100,15 +110,6 @@ space = char ' '
 intPair :: Parser [Integer]
 intPair = (\x s y -> [x, y]) <$> posInt <*> space <*> posInt
 
-
--- Exercise 4
-
-instance Alternative Parser where
-  empty = Parser $ const Nothing
-  p1 <|> p2= Parser parse
-    where parse s = let r1 = runParser p1 s
-                        r2 = runParser p2 s 
-                    in r1 <|> r2
 
 -- Exercise 5
 
